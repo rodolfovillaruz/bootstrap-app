@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bootstrap App</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 600; letter-spacing: .02em; }
+    .user-badge {
+      font-size: .8rem;
+      background: rgba(255,255,255,.12);
+      padding: .3rem .75rem;
+      border-radius: 999px;
+    }
+
+    main { max-width: 860px; margin: 2.5rem auto; padding: 0 1.5rem; }
+
+    .project-chip {
+      display: inline-block;
+      background: #e8eaf6;
+      color: #3949ab;
+      font-size: .75rem;
+      font-weight: 600;
+      padding: .25rem .7rem;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+      letter-spacing: .04em;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .action-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem 1.25rem 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+    .action-card h3 { font-size: .95rem; font-weight: 600; }
+    .action-card p { font-size: .82rem; color: #555; flex: 1; }
+
+    .btn {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      padding: .55rem 1rem;
+      transition: opacity .15s, transform .1s;
+      align-self: flex-start;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: #3949ab; color: #fff; }
+    .btn-secondary { background: #e8eaf6; color: #3949ab; }
+    .btn-primary:hover:not(:disabled) { opacity: .88; }
+    .btn-secondary:hover:not(:disabled) { background: #d1d5f5; }
+
+    #result-panel {
+      margin-top: 2rem;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      overflow: hidden;
+      display: none;
+    }
+    #result-panel.visible { display: block; }
+    .result-header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: .65rem 1.25rem;
+      font-size: .8rem;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+    }
+    #result-body {
+      padding: 1.1rem 1.25rem;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .82rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.55;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    .status-ok    { color: #2e7d32; }
+    .status-error { color: #c62828; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: .75rem;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Bootstrap App</h1>
+  <span class="user-badge">{{ user_email }}</span>
+</header>
+
+<main>
+  <div class="project-chip">PROJECT: {{ project_id }}</div>
+
+  <div class="actions-grid">
+    {% for action in actions %}
+    <div class="action-card">
+      <h3>{{ action.label }}</h3>
+      <p>{{ action.description }}</p>
+      <button
+        class="btn btn-{{ action.style }}"
+        onclick="runAction('{{ action.name }}', '{{ action.label }}', this)"
+      >Run</button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="result-panel">
+    <div class="result-header">
+      <span id="result-title">Output</span>
+      <span id="result-status"></span>
+    </div>
+    <pre id="result-body"></pre>
+  </div>
+</main>
+
+<footer>Cloud Run · IAP · Scale-to-zero · $0/month idle</footer>
+
+<script>
+async function runAction(name, label, btn) {
+  btn.disabled = true;
+  btn.textContent = "Running…";
+
+  const panel = document.getElementById("result-panel");
+  const body  = document.getElementById("result-body");
+  const title = document.getElementById("result-title");
+  const status = document.getElementById("result-status");
+
+  panel.classList.add("visible");
+  title.textContent = label;
+  status.textContent = "";
+  body.className = "";
+  body.textContent = "⏳ Running…";
+
+  try {
+    const res = await fetch(`/run/${name}`, { method: "POST" });
+    const data = await res.json();
+    const r = data.result || {};
+
+    status.textContent = r.status === "ok" ? "✓ OK" : "✗ ERROR";
+    body.className = r.status === "ok" ? "status-ok" : "status-error";
+
+    if (r.items && r.items.length) {
+      body.textContent = r.message + "\n\n" + r.items.join("\n");
+    } else {
+      body.textContent = r.message || JSON.stringify(r, null, 2);
+    }
+  } catch (err) {
+    body.className = "status-error";
+    body.textContent = "Fetch error: " + err.message;
+    status.textContent = "✗ ERROR";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Run";
+  }
+}
+</script>
+
+</body>
+</html>
