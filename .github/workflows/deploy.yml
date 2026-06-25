@@ -75,13 +75,14 @@ jobs:
             --region $REGION \
             --platform managed \
             --project $PROJECT_ID \
-            --no-allow-unauthenticated \
+            --allow-unauthenticated \
             --min-instances 0 \
             --max-instances 2 \
             --memory 512Mi \
             --cpu 1 \
             --timeout 300 \
-            --set-env-vars "PROJECT_ID=$PROJECT_ID" \
+            --set-env-vars "PROJECT_ID=$PROJECT_ID,FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}" \
+            --set-secrets "SECRET_KEY=bootstrap-app-secret-key:latest,FIREBASE_API_KEY=bootstrap-app-firebase-api-key:latest" \
             --quiet
 
       - name: Show service URL
