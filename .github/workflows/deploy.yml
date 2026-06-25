@@ -78,7 +78,7 @@ jobs:
             --region $REGION \
             --platform managed \
             --project $PROJECT_ID \
-            --no-allow-unauthenticated \
+            --allow-unauthenticated \
             --min-instances 0 \
             --max-instances 2 \
             --memory 512Mi \
