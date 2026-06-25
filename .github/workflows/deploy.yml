@@ -10,7 +10,8 @@ on:
 
 env:
   PROJECT_ID: yes-ph
-  REGION: europe-north2
+  DOCKER_REGION: europe-north2
+  CLOUD_RUN_REGION: europe-north1
   SERVICE_NAME: bootstrap-app
   REPO_NAME: bootstrap-app
 
@@ -34,19 +35,19 @@ jobs:
         uses: google-github-actions/setup-gcloud@v3
 
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker ${{ env.DOCKER_REGION }}-docker.pkg.dev --quiet
 
       - name: Ensure Artifact Registry repo exists
         run: |
           gcloud artifacts repositories create $REPO_NAME \
             --repository-format=docker \
-            --location=$REGION \
+            --location=$DOCKER_REGION \
             --project=$PROJECT_ID \
             --quiet 2>/dev/null || true
 
       - name: Build and push image
         run: |
-          IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$GITHUB_SHA"
+          IMAGE="$DOCKER_REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$GITHUB_SHA"
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
@@ -72,10 +73,10 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$GITHUB_SHA"
+          IMAGE="$DOCKER_REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$GITHUB_SHA"
           gcloud run deploy $SERVICE_NAME \
             --image "$IMAGE" \
-            --region $REGION \
+            --region $CLOUD_RUN_REGION \
             --platform managed \
             --project $PROJECT_ID \
             --allow-unauthenticated \
@@ -90,7 +91,7 @@ jobs:
       - name: Show service URL
         run: |
           URL=$(gcloud run services describe $SERVICE_NAME \
-            --region $REGION \
+            --region $CLOUD_RUN_REGION \
             --project $PROJECT_ID \
             --format "value(status.url)")
           echo "Service URL: $URL"
